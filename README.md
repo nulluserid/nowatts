@@ -13,7 +13,9 @@ contract plus real battery behavior.
 
 *Bar: plug glyph + live watts · Panel: one plain-English card per port.*
 
-**Status: SKETCH — nothing is built yet. Start with [PLAN.md](PLAN.md).**
+**Status: v1 working on this machine** — daemon live as a systemd `--user`
+service, widget live in the bar. See [PLAN.md](PLAN.md) for the remaining
+verification queue and [SPEC.md](SPEC.md) "Success criteria".
 
 ## What it shows
 
@@ -70,16 +72,15 @@ update. Manual steps are in [PLAN.md](PLAN.md) P1a.8 / P1b.1.
 `wattbar` (Mac menu bar power monitor) and `wattson` (energy-monitor
 hardware) were taken or crowded. Details in [RESEARCH.md](RESEARCH.md).
 
-## Repo layout
-
 ```
 RESEARCH.md        verified sysfs map + constraints + Omarchy conventions
 SPEC.md            stories, requirements, success criteria
 CONTRACT.md        status.json v1 — the daemon↔widget interface
-PLAN.md            ordered build checklist for the building session
-nowatts/           Rust crate skeleton (Cargo.toml + module map)
-plugin/            Omarchy shell widget skeleton (stubs — not loadable yet)
-nowatts.service    systemd --user unit, modeled on this machine's starlinkd
+PLAN.md            verification queue for what's left
+install.sh         build + install daemon, unit, and widget
+nowatts/           Rust crate — sysfs reader, model, atomic writer, watcher
+plugin/            Omarchy shell widget (legend.nowatts) + preview.png
+nowatts.service    systemd --user unit
 ```
 
 ## Hardware this was scoped on

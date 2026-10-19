@@ -93,7 +93,10 @@ The widget renders these verbatim; the daemon owns the wording.
 - `"Nothing connected"`
 - `"Charging at {w}W of a {cw}W contract — battery taking {b}W"`
 - `"Charging at {w}W — battery taking {b}W"` (contract not readable)
-- `"Battery full — plugged in, not drawing"` (AC online + status *Not charging*)
+- `"Battery full — plugged in, not drawing"` (AC online + status *Not charging*;
+  triggered from the **port psy's** status — the port-level truth on UCSI —
+  even when BAT0 still reads *Discharging* for a moment; documented
+  2026-10-19, completion review)
 - `"Supplying power to a device"` (power_role source)
 - `"Device connected (USB {speed})"` (partner, no power contract)
 - `"Display connected"`

@@ -568,11 +568,16 @@ fn attribute_thunderbolt(base: &Path, snap: &mut Snapshot) {
         .collect();
     let all = tb_devices_anywhere(base);
     if partners.len() == 1 && all.len() == 1 {
+        static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
         let name = snap.ports[partners[0]].id.clone();
         snap.ports[partners[0]].thunderbolt = Some(all.into_iter().next().expect("len == 1 checked"));
-        eprintln!(
-            "nowatts: TB device attributed to {name} by elimination (sole partner port; kernel links absent)"
-        );
+        // Log once per process: the fallback fires on every heartbeat scan
+        // and the journal must stay readable (completion-review NOTE).
+        if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+            eprintln!(
+                "nowatts: TB device attributed to {name} by elimination (sole partner port; kernel links absent)"
+            );
+        }
     }
 }
 
