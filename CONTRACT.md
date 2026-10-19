@@ -21,6 +21,12 @@ halves of the project — change it only with a `version` bump.
 
 ## Schema (v1)
 
+> **Degraded case (documented 2026-10-19 — pre-install review):** when
+> `degraded.typec` is `false`, the document carries an additional TOP-LEVEL
+> `"verdict": "No USB-C data available"` so the one enum line is reachable
+> while `ports` is `[]`. Consumers per rule 5 may ignore it; producers must
+> keep emitting it in that state. Not present in the healthy case.
+
 ```jsonc
 {
   "version": 1,
@@ -94,7 +100,10 @@ The widget renders these verbatim; the daemon owns the wording.
 - `"No USB-C data available"` (degraded.typec = false; then `ports` is `[]`)
 
 Verdicts compose the highest-priority applicable line; the panel can show the
-full detail regardless. Priority: charging > display > device > nothing.
+full detail regardless. Priority (full order, documented 2026-10-19):
+**charging > battery full > display > device > supplying > nothing**
+(the CONTRACT's original text pinned only "charging > display > device >
+nothing"; the daemon's implemented order is now normative).
 
 ## Warning enum (v1)
 

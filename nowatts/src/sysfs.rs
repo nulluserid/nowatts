@@ -476,7 +476,9 @@ fn tb_device_on_router(router: &Path) -> Option<TbLink> {
         if m.is_empty() || !m.bytes().all(|b| b.is_ascii_digit()) {
             continue;
         }
-        let m: u32 = m.parse().ok()?;
+        // All-digits already checked above; a u32 overflow here must not
+        // abort the whole router scan (review NOTE) — skip the entry.
+        let Ok(m) = m.parse::<u32>() else { continue };
         if m == 0 {
             continue; // host router itself
         }

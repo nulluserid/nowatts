@@ -45,8 +45,10 @@ Options:
 
 fn default_status_path() -> PathBuf {
     let state_dir = match std::env::var_os("XDG_STATE_HOME") {
-        Some(v) => PathBuf::from(v),
-        None => match std::env::home_dir() {
+        // Empty string must not produce a cwd-relative path (review NOTE).
+        Some(v) if !v.is_empty() => PathBuf::from(v),
+        // Unset, or set-but-empty: fall back to $HOME/.local/state.
+        Some(_) | None => match std::env::home_dir() {
             Some(h) => h.join(".local/state"),
             None => return PathBuf::from("status.json"),
         },
