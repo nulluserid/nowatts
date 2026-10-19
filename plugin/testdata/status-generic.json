@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "heartbeat_unix": 1760868000,
+  "battery": { "present": true, "status": "Discharging", "power_w": -8.1, "percent": null },
+  "ac_online": false,
+  "ports": [
+    {
+      "id": "port0", "psy": null,
+      "location": null, "partner": true,
+      "power_role": "sink", "data_role": "host",
+      "usb_capability": "usb2", "pd_revision": null, "supports_pd": false,
+      "contract": null, "measured": null,
+      "usb_types": ["C"], "active_usb_type": "C",
+      "devices": [
+        { "name": "Generic USB stick", "vendor": "Acme", "product": "Flash 32", "speed_mbps": 480 }
+      ],
+      "display": { "connectors": [], "dp_alt_mode": false },
+      "identity": null,
+      "verdict": "Device connected (USB 480)",
+      "warning": null
+    }
+  ],
+  "unmapped_devices": [
+    { "name": "Unknown hub", "vendor": "Generic", "product": "4-port hub", "speed_mbps": 480 }
+  ],
+  "degraded": { "typec": true, "psy_mapping": "unknown" }
+}

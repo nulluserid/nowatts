@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "heartbeat_unix": 1760868000,
+  "battery": { "present": true, "status": "Charging", "power_w": 17.4, "percent": 18.9 },
+  "ac_online": true,
+  "ports": [
+    {
+      "id": "port0", "psy": "ucsi-source-psy-USBC000:001",
+      "location": "left upper", "partner": false,
+      "power_role": "sink", "data_role": "device",
+      "usb_capability": "usb2", "pd_revision": "2.0", "supports_pd": true,
+      "contract": null, "measured": null,
+      "usb_types": ["C", "PD", "PD_PPS"], "active_usb_type": "C",
+      "devices": [], "display": { "connectors": [], "dp_alt_mode": false },
+      "identity": null,
+      "verdict": "Nothing connected", "warning": null
+    },
+    {
+      "id": "port1", "psy": "ucsi-source-psy-USBC000:002",
+      "location": "left upper", "partner": true,
+      "power_role": "sink", "data_role": "device",
+      "usb_capability": "usb3", "pd_revision": "2.0", "supports_pd": true,
+      "contract": { "volts": 20.0, "amps": 5.0, "watts": 100.0 },
+      "measured": { "volts": 20.0, "amps": 3.25, "watts": 65.0 },
+      "usb_types": ["C", "PD", "PD_PPS"], "active_usb_type": "PD",
+      "devices": [],
+      "thunderbolt": { "generation": 4, "authorized": true, "name": "Gen16" },
+      "display": { "connectors": [], "dp_alt_mode": false },
+      "identity": null,
+      "verdict": "Charging at 65W of a 100W contract — battery taking 17.4W",
+      "warning": null
+    }
+  ],
+  "unmapped_devices": [],
+  "degraded": { "typec": true, "psy_mapping": "assumed" }
+}
