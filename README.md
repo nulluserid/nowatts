@@ -9,6 +9,10 @@ knows about your USB-C ports and says it in plain English — the
 No cable chips required: slow-charge detection comes from the negotiated PD
 contract plus real battery behavior.
 
+![nowatts preview](plugin/preview.png)
+
+*Bar: plug glyph + live watts · Panel: one plain-English card per port.*
+
 **Status: SKETCH — nothing is built yet. Start with [PLAN.md](PLAN.md).**
 
 ## What it shows
@@ -38,6 +42,17 @@ legend.nowatts  (Omarchy shell bar widget · thin QML)
 
 The contract between the halves is the entire interface: see
 [CONTRACT.md](CONTRACT.md).
+
+## Install
+
+```sh
+./install.sh
+```
+
+Builds the daemon (Rust, `mise use rust`), installs the binary to
+`~/.local/bin/`, the systemd `--user` unit, and the widget to
+`~/.config/omarchy/plugins/legend.nowatts/`, then enables both. Re-run to
+update. Manual steps are in [PLAN.md](PLAN.md) P1a.8 / P1b.1.
 
 ## Deployment paths (target)
 
