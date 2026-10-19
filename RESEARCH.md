@@ -57,10 +57,13 @@ trust blindly — but this is a real map, not a guess.
   | `current_max` | 0 | 5000000 (5 A) |
   | `voltage_now` | 0 | 20000000 |
   | `current_now` | 0 | 3250000 (3.25 A) |
-  | `usb_types` | `[C] PD PD_PPS` | `C [PD] PD_PPS` |
+  | `usb_type` | `[C] PD PD_PPS` | `C [PD] PD_PPS` |
 
   → contract = 20 V × 5 A = **100 W**; measured = 20 V × 3.25 A = **65 W**.
   `charge_type` was `Standard`.
+  *(Correction, build session 2026-10-19: the psy attribute is named
+  `usb_type`, not `usb_types` — re-verified live the same day; brackets
+  still mark the active entry.)*
 - `BAT0`: `status=Charging`, `power_now=17368000` (17.4 W into the battery),
   `energy_now`/`energy_full` for percent
 - **Port↔PSY mapping hypothesis (verify at build time, PLAN §P1a.6):**

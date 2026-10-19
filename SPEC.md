@@ -85,6 +85,11 @@ behavior changes without a restart (hot-reload).
 - CLI tool, notifications, charge limiting / threshold control
 - Multi-language UI
 - Non-UCSI platforms (design degrades gracefully, but nothing is promised)
+  — **amended by owner, 2026-10-19 (build session):** build for hardware
+  generality anyway — "don't build it to exclusively run just on this laptop.
+  this should be something others may benefit from too!" Readers enumerate
+  sysfs classes generically (no hardcoded names/counts); tested depth remains
+  this UCSI machine, everything else degrades honestly.
 
 ## Success criteria
 
