@@ -103,6 +103,10 @@ tb_tree() { # tb_tree <sysfs root>  — host router 0-0 + Plugable TB3 dock 0-1 
     attr "$router/0-1" vendor_name Plugable
     attr "$router/0-1" generation 3
     attr "$router/0-1" authorized 1
+    # The kernel also exposes these through the thunderbolt bus (symlinks):
+    mkdir -p "$1/bus/thunderbolt/devices"
+    ln -sfn "../../../devices/pci0000:00/0000:00:0d.2/domain0/0-0" "$1/bus/thunderbolt/devices/0-0"
+    ln -sfn "../../../devices/pci0000:00/0000:00:0d.2/domain0/0-0/0-1" "$1/bus/thunderbolt/devices/0-1"
 }
 
 add_tb_link() { # add_tb_link <port dir> <sysfs root>  — resolving usb4_port1 link
@@ -208,6 +212,9 @@ mains "$c/class/power_supply" AC 1
 c="$F/display-connected/sysfs"
 mkdir -p "$c/class/typec"
 port_common "$c/class/typec/port0"; add_location "$c/class/typec/port0"; attr "$c/class/typec/port0" data_role "host [device]"
+# The dock IS port0's partner in this scenario — attribution requires a
+# partner (2026-10-19 live lesson: links exist on partnerless ports too).
+add_partner "$c/class/typec" port0
 add_tb_link "$c/class/typec/port0" "$c"
 add_alt_modes "$c/class/typec" port0
 port_common "$c/class/typec/port1"; add_location "$c/class/typec/port1"; attr "$c/class/typec/port1" data_role "[host] device"
@@ -293,6 +300,49 @@ attr "$d" current_max 3000000
 attr "$d" voltage_now 20000000
 attr "$d" current_now 3000000
 battery_live "$c/class/power_supply" BAT0 Charging 8000000 40000000 57010000
+mains "$c/class/power_supply" AC 1
+
+# ---------- case 14: tb-static-link-no-partner (live bug mirror, 2026-10-19) ----------
+# The owner's live scenario: ONE dock plugged in. UCSI reports the partner +
+# 60W PD on port1; port0 (empty) carries the static usb4_port1 link into the
+# dock's domain. Regression: a partnerless port must NOT claim the dock or
+# the display; the sole partner port claims them by elimination.
+c="$F/tb-static-link-no-partner/sysfs"
+mkdir -p "$c/class/typec"
+port_common "$c/class/typec/port0"; add_location "$c/class/typec/port0"; attr "$c/class/typec/port0" data_role "host [device]"
+add_tb_link "$c/class/typec/port0" "$c"      # static controller topology, no partner
+add_alt_modes "$c/class/typec" port0         # live quirk: ff01 "active" even partnerless
+port_common "$c/class/typec/port1"; add_location "$c/class/typec/port1"; attr "$c/class/typec/port1" data_role "[host] device"
+add_partner "$c/class/typec" port1           # the dock's cable
+add_alt_modes "$c/class/typec" port1
+tb_tree "$c"                                 # dock lives under domain0 — linked from port0!
+d="$c/class/drm"
+drm_conn "$d" 0-DP-1 connected
+drm_conn "$d" 0-DP-2 disconnected
+drm_conn "$d" 0-eDP-1 connected
+drm_conn "$d" 0-HDMI-A-1 disconnected
+psy_ucsi_idle "$c/class/power_supply"
+psy_ucsi_charging "$c/class/power_supply"    # the dock's own 60W PD on :002
+battery_live "$c/class/power_supply" BAT0 Charging 4300000 56990000 57010000
+mains "$c/class/power_supply" AC 1
+
+# ---------- case 15: dp-alt-dock-no-tb (display by elimination) ----------
+# A DP-alt-mode dock that exposes NO thunderbolt tree and no usb4 links:
+# with exactly one partner port, its connected display is claimed by
+# elimination; thunderbolt stays null; the partnerless port claims nothing.
+c="$F/dp-alt-dock-no-tb/sysfs"
+mkdir -p "$c/class/typec"
+port_common "$c/class/typec/port0"; add_location "$c/class/typec/port0"; attr "$c/class/typec/port0" data_role "host [device]"
+add_alt_modes "$c/class/typec" port0
+port_common "$c/class/typec/port1"; add_location "$c/class/typec/port1"; attr "$c/class/typec/port1" data_role "[host] device"
+add_partner "$c/class/typec" port1
+add_alt_modes "$c/class/typec" port1
+d="$c/class/drm"
+drm_conn "$d" 0-DP-1 connected
+drm_conn "$d" 0-eDP-1 connected
+psy_ucsi_idle "$c/class/power_supply"
+psy_ucsi_charging "$c/class/power_supply"
+battery_live "$c/class/power_supply" BAT0 Charging 4300000 56990000 57010000
 mains "$c/class/power_supply" AC 1
 
 echo "fixtures written:"

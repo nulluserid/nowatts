@@ -108,12 +108,16 @@ pub struct PortSnapshot {
 }
 
 impl PortSnapshot {
-    /// Strong physical-link evidence (TB/USB4 path) that display connectors
-    /// may be attributed to this port. The raw DP alt-mode flag is excluded:
-    /// on UCSI platforms it can read "active" on ports with no link at all
-    /// (observed live on a charger-only port, 2026-10-19).
+    /// Strong evidence that display connectors may be attributed to this
+    /// port: the port must have a partner (a display over USB-C requires a
+    /// cable), plus a physical link path — a resolved TB device attributed
+    /// to it, or a resolved `usb4_portN` router link. The raw DP alt-mode
+    /// flag is excluded: on UCSI platforms it can read "active" on ports
+    /// with no link at all (observed live on a charger-only port and on a
+    /// partnerless port, 2026-10-19). Static router links are only trusted
+    /// WITH a partner present (see `attribute_thunderbolt`).
     fn strong_link_evidence(&self) -> bool {
-        self.usb4_router.is_some() || self.thunderbolt.is_some()
+        self.partner && (self.thunderbolt.is_some() || self.usb4_router.is_some())
     }
 }
 
@@ -213,6 +217,7 @@ pub fn read_snapshot(base: &Path) -> Snapshot {
     read_power_supplies(base, &mut snap);
     read_typec_ports(base, &mut snap);
     read_usb_devices(base, &mut snap);
+    attribute_thunderbolt(base, &mut snap);
     read_drm_and_attribute(base, &mut snap);
     snap.psy_mapping = map_psys_to_ports(&mut snap);
     snap
@@ -433,11 +438,11 @@ fn read_typec_ports(base: &Path, snap: &mut Snapshot) {
             }
         }
 
-        // Thunderbolt device hanging off this port's router (route `N-M`, M>0).
-        port.thunderbolt = port
-            .usb4_router
-            .as_ref()
-            .and_then(|router| tb_device_on_router(router));
+        // TB attribution does NOT happen here: a resolved `usb4_portN` link
+        // is static controller topology, present even on ports with nothing
+        // plugged in (observed live 2026-10-19 — the dock showed up on a
+        // partnerless port). Attribution needs partner state; see
+        // `attribute_thunderbolt`, which runs once all ports are collected.
 
         snap.ports.push(port);
     }
@@ -486,16 +491,89 @@ fn tb_device_on_router(router: &Path) -> Option<TbLink> {
         if !ddir.is_dir() {
             continue;
         }
-        let link = TbLink {
-            generation: read_i64(&ddir.join("generation")).map(|v| v as u32),
-            authorized: read_i64(&ddir.join("authorized")).map(|v| v != 0).unwrap_or(false),
-            name: read_attr(&ddir.join("device_name")),
-        };
+        let link = read_tb_link(&ddir);
         if best.as_ref().map_or(true, |(bm, _)| m < *bm) {
             best = Some((m, link));
         }
     }
     best.map(|(_, link)| link)
+}
+
+/// Read one TB/USB4 device dir into a `TbLink`.
+fn read_tb_link(ddir: &Path) -> TbLink {
+    TbLink {
+        generation: read_i64(&ddir.join("generation")).map(|v| v as u32),
+        authorized: read_i64(&ddir.join("authorized")).map(|v| v != 0).unwrap_or(false),
+        name: read_attr(&ddir.join("device_name")),
+    }
+}
+
+/// Every attached TB/USB4 device (route `N-M`, M > 0) across all domains.
+fn tb_devices_anywhere(base: &Path) -> Vec<TbLink> {
+    let mut out = Vec::new();
+    let root = base.join("bus/thunderbolt/devices");
+    for entry in dir_entries(&root) {
+        let Some((n, m)) = entry.split_once('-') else {
+            continue;
+        };
+        if !n.bytes().all(|b| b.is_ascii_digit()) || !m.bytes().all(|b| b.is_ascii_digit()) {
+            continue;
+        }
+        let Ok(m) = m.parse::<u32>() else { continue };
+        if m == 0 {
+            continue; // host router
+        }
+        out.push(read_tb_link(&root.join(&entry)));
+    }
+    out
+}
+
+/// Attribute TB/USB4 devices to ports.
+///
+/// Live lesson (2026-10-19, owner report: one dock plugged in, dock info
+/// split across two port cards): `usb4_portN` links are static controller
+/// topology — they exist on ports with nothing plugged in. A link alone is
+/// NOT a connection. Rules:
+///   1. strong: a port with a partner whose `usb4_portN` router subtree
+///      contains an attached device claims it;
+///   2. fallback: when no strong claim landed, exactly ONE partner port
+///      exists and exactly ONE device exists anywhere → attribute it to
+///      that port by elimination (logged — it is an inference, not a read);
+///   3. anything ambiguous → no attribution at all (FR-005: never invent).
+fn attribute_thunderbolt(base: &Path, snap: &mut Snapshot) {
+    let mut strong: Vec<(usize, TbLink)> = Vec::new();
+    for (i, port) in snap.ports.iter().enumerate() {
+        if !port.partner {
+            continue;
+        }
+        if let Some(router) = &port.usb4_router {
+            if let Some(link) = tb_device_on_router(router) {
+                strong.push((i, link));
+            }
+        }
+    }
+    if !strong.is_empty() {
+        for (i, link) in strong {
+            snap.ports[i].thunderbolt = Some(link);
+        }
+        return;
+    }
+
+    let partners: Vec<usize> = snap
+        .ports
+        .iter()
+        .enumerate()
+        .filter(|(_, p)| p.partner)
+        .map(|(i, _)| i)
+        .collect();
+    let all = tb_devices_anywhere(base);
+    if partners.len() == 1 && all.len() == 1 {
+        let name = snap.ports[partners[0]].id.clone();
+        snap.ports[partners[0]].thunderbolt = Some(all.into_iter().next().expect("len == 1 checked"));
+        eprintln!(
+            "nowatts: TB device attributed to {name} by elimination (sole partner port; kernel links absent)"
+        );
+    }
 }
 
 fn read_usb_devices(base: &Path, snap: &mut Snapshot) {
@@ -580,22 +658,44 @@ fn read_drm_and_attribute(base: &Path, snap: &mut Snapshot) {
     }
     external_connected.sort();
 
-    let evidence_ports: Vec<usize> = snap
+    let mut evidence_ports: Vec<usize> = snap
         .ports
         .iter()
         .enumerate()
         .filter(|(_, p)| p.strong_link_evidence())
         .map(|(i, _)| i)
         .collect();
+    if evidence_ports.is_empty() && !external_connected.is_empty() {
+        // DP-alt-mode docks that expose no TB/USB4 links: with exactly one
+        // partner port, the connected display can only belong to it — the
+        // same elimination inference as `attribute_thunderbolt`. Ambiguous
+        // (0 or ≥2 partners) → nothing is claimed.
+        let partners: Vec<usize> = snap
+            .ports
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| p.partner)
+            .map(|(i, _)| i)
+            .collect();
+        if partners.len() == 1 {
+            evidence_ports = partners;
+        }
+    }
     if evidence_ports.len() == 1 && !external_connected.is_empty() {
         snap.ports[evidence_ports[0]].display_connectors = external_connected;
     }
 
-    // dp_alt_mode: kernel reports an active ff01 alt mode AND the port has a
-    // physical link path for it — on UCSI the raw flag alone reads "active"
-    // even on charger-only ports (observed live), so gate it.
+    // dp_alt_mode: kernel reports an active ff01 alt mode AND the port has
+    // connection-grounded evidence — an attributed TB device, claimed
+    // display connectors, or a router link WITH a partner. On UCSI the raw
+    // flag alone reads "active" even on partnerless/charger-only ports
+    // (observed live), so gate it.
     for p in snap.ports.iter_mut() {
-        p.dp_alt_mode = p.alt_dp_active && p.strong_link_evidence();
+        p.dp_alt_mode = p.alt_dp_active
+            && p.partner
+            && (p.thunderbolt.is_some()
+                || !p.display_connectors.is_empty()
+                || p.usb4_router.is_some());
     }
 }
 
@@ -884,6 +984,59 @@ mod tests {
         let p1 = &s.ports[1];
         assert!(p1.thunderbolt.is_none());
         assert!(p1.display_connectors.is_empty());
+    }
+
+    #[test]
+    fn tb_static_link_without_partner_is_not_attributed() {
+        // Live bug mirror (2026-10-19, owner report): ONE dock plugged in;
+        // the kernel links port0's static usb4 topology into the dock's
+        // domain while UCSI reports the partner + PD on port1. The
+        // partnerless port must claim nothing; the sole partner port claims
+        // the dock and the display by elimination.
+        let s = snap("tb-static-link-no-partner");
+        let p0 = &s.ports[0];
+        assert!(p0.usb4_router.is_some(), "static link present in fixture");
+        assert!(!p0.partner, "fixture mirrors the live partnerless port");
+        assert!(p0.thunderbolt.is_none(), "a partnerless port claims no TB device");
+        assert!(p0.display_connectors.is_empty(), "no display without a partner");
+        assert!(!p0.dp_alt_mode);
+        let p1 = &s.ports[1];
+        assert!(p1.partner);
+        let tb = p1
+            .thunderbolt
+            .as_ref()
+            .expect("sole partner port claims the dock by elimination");
+        assert_eq!(tb.name.as_deref(), Some("TBT3-UDV Docking Station"));
+        assert_eq!(p1.display_connectors, vec!["DP-1 connected"]);
+        assert!(p1.dp_alt_mode);
+
+        // The model layer turns the same snapshot into plain English: the
+        // partnerless port is honestly "Nothing connected" while the dock's
+        // port keeps its charging verdict.
+        let doc = crate::model::build(&snap("tb-static-link-no-partner"), 100);
+        assert_eq!(doc.ports[0].verdict, "Nothing connected");
+        assert!(
+            doc.ports[1].verdict.starts_with("Charging at 60W"),
+            "{}",
+            doc.ports[1].verdict
+        );
+    }
+
+    #[test]
+    fn dp_alt_dock_display_claimed_by_elimination() {
+        // DP-alt-mode dock with no thunderbolt tree at all: the connected
+        // display goes to the sole partner port; thunderbolt stays null;
+        // nothing leaks onto the partnerless port.
+        let s = snap("dp-alt-dock-no-tb");
+        let p0 = &s.ports[0];
+        assert!(p0.thunderbolt.is_none());
+        assert!(p0.display_connectors.is_empty());
+        assert!(!p0.dp_alt_mode);
+        let p1 = &s.ports[1];
+        assert!(p1.partner);
+        assert!(p1.thunderbolt.is_none(), "no TB device exists in this fixture");
+        assert_eq!(p1.display_connectors, vec!["DP-1 connected"]);
+    assert!(p1.dp_alt_mode, "active ff01 + claimed connectors on the partner port");
     }
 
     #[test]
