@@ -1,0 +1,13 @@
+[Unit]
+Description=nowatts — USB-C power status daemon (nowatts)
+Documentation=file://%h/Projects/omarchy_usb_power/CONTRACT.md
+# Modeled on this machine's ~/.config/systemd/user/starlinkd.service.
+# No network dependency: nowatts only reads local sysfs.
+
+[Service]
+ExecStart=%h/.local/bin/nowatts
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

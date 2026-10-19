@@ -1,0 +1,8 @@
+# DerpCode private workspace
+.derpcode/
+.opencode/
+
+# Rust
+/target/
+nowatts/target/
+*.rs.bk

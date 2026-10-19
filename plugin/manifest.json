@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "legend.nowatts",
+  "name": "nowatts",
+  "version": "0.1.0",
+  "author": "legend",
+  "description": "Plain-English USB-C power status in the bar — live watts, PD contract, slow-charge warnings",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "nowatts",
+    "description": "USB-C charging and device status from nowatts (status.json)",
+    "category": "Power",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "show": "auto",
+      "format": "watts",
+      "interval": 1000
+    },
+    "schema": [
+      {
+        "key": "show",
+        "type": "enum",
+        "label": "Show in bar",
+        "options": [
+          "auto",
+          "always"
+        ],
+        "defaultValue": "auto"
+      },
+      {
+        "key": "format",
+        "type": "enum",
+        "label": "Bar readout",
+        "options": [
+          "watts",
+          "contract",
+          "icon"
+        ],
+        "defaultValue": "watts"
+      },
+      {
+        "key": "interval",
+        "type": "integer",
+        "label": "Refresh interval (ms)",
+        "min": 500,
+        "max": 10000,
+        "step": 500,
+        "defaultValue": 1000
+      }
+    ]
+  }
+}
