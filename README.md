@@ -9,9 +9,9 @@ knows about your USB-C ports and says it in plain English — the
 No cable chips required: slow-charge detection comes from the negotiated PD
 contract plus real battery behavior.
 
-![nowatts preview](plugin/preview.png)
+![nowatts panel showing USB-C charging status and per-port details](plugin/preview.png)
 
-*Bar: plug glyph + live watts · Panel: one plain-English card per port.*
+*Live panel: charging status, one card per USB-C port, and unassociated devices.*
 
 **Status: v1 working on this machine** — daemon live as a systemd `--user`
 service, widget live in the bar. See [PLAN.md](PLAN.md) for the remaining
