@@ -58,7 +58,7 @@ halves of the project — change it only with a `version` bump.
       "measured": {                  // live draw; null when not measurable
         "volts": 20.0, "amps": 3.25, "watts": 65.0
       },
-      "usb_types": ["C", "PD", "PD_PPS"],   // supported set, from psy usb_types
+      "usb_types": ["C", "PD", "PD_PPS"],   // supported set, from psy usb_type
       "active_usb_type": "PD",              // bracketed entry in usb_types
 
       "devices": [                   // USB devices associated to this port

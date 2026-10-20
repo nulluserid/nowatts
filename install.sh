@@ -35,7 +35,7 @@ rm -rf "$PLUGIN_DIR"
 cp -r plugin "$PLUGIN_DIR"
 omarchy plugin enable legend.nowatts 2>/dev/null || true
 # QML component cache keeps stale builds until the shell restarts
-# (observed on Omarchy 4.0.4 — see ledger); restart once so the fresh
+# (observed on Omarchy 4.0.4); restart once so the fresh
 # widget code is what renders.
 omarchy restart shell
 

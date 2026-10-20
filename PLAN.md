@@ -1,18 +1,21 @@
-# BUILD PLAN — for a fresh building session
+# BUILD PLAN
 
-This repo is a **sketch** (2026-10-19). Nothing is implemented. The plan below
-is the ordered path from here to v1. Read order: README → RESEARCH → CONTRACT
-→ SPEC → this file. Owner asks verbatim and the decision log live in the
-private `.derpcode/artifacts/` (build-ledger, direction-register, spec-brief).
+**Status: v1 is built and live on the dev machine (2026-10-19)** — daemon as
+a systemd `--user` service, widget in the bar; see README. The checklists
+below are now the **remaining verification queue**: owner-assisted live
+proofs (unplug/replug timing, weak charger), the settings walk, and polish.
+The queue order is still read-order: README → RESEARCH → CONTRACT → SPEC →
+this file.
 
 ## 0 — Prerequisites
 
-- [ ] `mise install rust@stable` — Rust is **not** installed (go is, but the
-      owner chose Rust; don't use go)
-- [ ] `pkg-config --exists libudev && test -f /usr/include/libudev.h`
-      (both ship with Arch's `systemd` package — expect yes)
-- [ ] `git status` clean; build on a branch
-- [ ] Re-verify the RESEARCH.md data map against live sysfs before trusting it
+- [x] `mise install rust@stable` + `mise use rust` — installed and
+      activated this session (rustc/cargo 1.99.1)
+- [x] `pkg-config --exists libudev && test -f /usr/include/libudev.h`
+      (both ship with Arch's `systemd` package — yes)
+- [x] `git status` clean; built on a branch (`build/nowatts-v1`)
+- [x] Re-verified the RESEARCH.md data map against live sysfs (one
+      correction applied: psy attr is `usb_type`, not `usb_types`)
 
 ## P1a — daemon (`nowatts/`)
 
@@ -45,8 +48,8 @@ private `.derpcode/artifacts/` (build-ledger, direction-register, spec-brief).
 ## P1b — widget (`plugin/` → `~/.config/omarchy/plugins/legend.nowatts/`)
 
 - [ ] **P1b.1** Install the plugin folder (copy, or `omarchy plugin add` if
-      the repo is on GitHub by then). Nothing in `plugin/` is loadable yet —
-      it's stubbed on purpose.
+      the repo is on GitHub by then). *(Done: deployed to
+      `~/.config/omarchy/plugins/legend.nowatts` and enabled.)*
 - [ ] **P1b.2** `BarWidget.qml` for real: FileView+Timer on status.json,
       label per `format` setting, stale marker (heartbeat > 60 s), `show=auto`
       muting. Copy the panelLoader/injectPanel boilerplate from
@@ -84,4 +87,4 @@ private `.derpcode/artifacts/` (build-ledger, direction-register, spec-brief).
 
 SPEC.md "Success criteria" 1–5 are all demonstrated, each with its own
 evidence (timing checks, ±5 % diffs, cargo test output, validate output,
-24 h journal). Tick nothing on a subagent's word — reproduce it.
+24 h journal). Tick nothing on anyone's word — reproduce it.

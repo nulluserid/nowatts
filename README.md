@@ -86,6 +86,6 @@ nowatts.service    systemd --user unit
 ## Hardware this was scoped on
 
 ThinkPad X1 Carbon Gen 13 (Core Ultra 7 258V, Lunar Lake), Omarchy 4.0.4,
-kernel 7.2.5-omarchy, two USB-C ports over UCSI. [RESEARCH.md](RESEARCH.md)
+kernel 7.2.5-3-omarchy, two USB-C ports over UCSI. [RESEARCH.md](RESEARCH.md)
 has the exact sysfs map — and the two things this hardware cannot do (cable
 e-markers, charger PDO lists), which is why they're out of scope.
