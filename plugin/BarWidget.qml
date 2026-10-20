@@ -129,6 +129,26 @@ BarWidget {
     function open(): void { root.open() }
     function close(): void { root.close() }
     function toggle(): void { root.togglePanel() }
+
+    // Vision-free introspection: exactly what this widget renders right
+    // now, as JSON. The panel/binder tests call this over the shell IPC.
+    function status(): string {
+      return JSON.stringify({
+        label: String(root.label),
+        value: String(root.value),
+        muted: !!root.muted,
+        stale: !!root.stale,
+        level: String(root.level),
+        opened: !!root.opened,
+        ports: root.statusData && Array.isArray(root.statusData.ports)
+          ? root.statusData.ports.length : -1,
+        verdict0: (root.statusData && Array.isArray(root.statusData.ports)
+            && root.statusData.ports.length > 0 && (root.statusData.ports[0] || {}).verdict)
+          ? String(root.statusData.ports[0].verdict) : "",
+        unmapped: root.statusData && Array.isArray(root.statusData.unmapped_devices)
+          ? root.statusData.unmapped_devices.length : -1
+      })
+    }
   }
 
   WidgetButton {

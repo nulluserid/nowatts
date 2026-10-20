@@ -73,8 +73,12 @@ Panel {
     open: root.opened
     centerOnBar: true
     focusTarget: keyCatcher
-    contentWidth: panel.fittedContentWidth(Style.space(620))
-    contentHeight: panel.fittedContentHeight(Style.space(620))
+    // Content-sized height (first-party panel pattern): the panel hugs its
+    // content instead of reserving a fixed 620x620 box, so sparse states
+    // (two short cards) don't leave dead space. Width stays fixed so long
+    // verdicts wrap at a comfortable line length.
+    contentWidth: panel.fittedContentWidth(Style.space(460))
+    contentHeight: panel.fittedContentHeight(dashColumn.implicitHeight, Style.space(680))
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -127,7 +131,7 @@ Panel {
       Column {
         id: dashColumn
         width: dashScroll.width
-        spacing: Style.space(12)
+        spacing: Style.space(8)
 
         // ---- Header: state dot + name + global battery line ----
         // Wrapper Item: Row children may not use anchors (Dishy KVRow pattern).
@@ -258,7 +262,7 @@ Panel {
             }
 
             width: parent.width
-            implicitHeight: cardColumn.implicitHeight + Style.space(20)
+            implicitHeight: cardColumn.implicitHeight + Style.space(16)
             radius: Style.space(6)
             color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.05)
             border.width: card.warning !== "" ? 1 : 0
@@ -267,8 +271,8 @@ Panel {
             Column {
               id: cardColumn
               anchors.fill: parent
-              anchors.margins: Style.space(10)
-              spacing: Style.space(6)
+              anchors.margins: Style.space(8)
+              spacing: Style.space(4)
 
               // Title: port id + location ("left upper" → "Left upper").
               // Location omitted entirely when null/missing.
@@ -389,36 +393,36 @@ Panel {
         }
 
         // ---- Unassociated devices (ports where association failed) ----
+        // One joined wrapped line under a compact header: N devices must
+        // not cost N rows of vertical space.
         Column {
           visible: root.unmapped.length > 0
           width: parent.width
-          spacing: Style.space(4)
+          spacing: Style.space(2)
 
           Text {
             text: "UNASSOCIATED DEVICES"
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: Style.font.body
+            font.pixelSize: Style.font.bodySmall
             font.bold: true
           }
 
-          Repeater {
-            model: root.unmapped
+          Text {
+            readonly property var parts: root.unmapped.map(function(d) {
+              d = d || {}
+              return (d.name || d.product || d.vendor || "device")
+                + "  ·  " + Model.fmtSpeedMbps(d.speed_mbps)
+            })
 
-            Text {
-              required property var modelData
-              readonly property var dev: modelData || {}
-              readonly property string name: String(dev.name || dev.product || dev.vendor || "device")
-
-              width: parent.width
-              text: "·  " + name + "  ·  " + Model.fmtSpeedMbps(dev.speed_mbps)
-              textFormat: Text.PlainText
-              elide: Text.ElideRight
-              color: root.fg
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
+            width: parent.width
+            text: parts.join("   ·   ")
+            textFormat: Text.PlainText
+            wrapMode: Text.Wrap
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
           }
         }
 
